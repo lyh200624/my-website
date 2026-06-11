@@ -4,24 +4,93 @@ const fs = require('fs');
 const os = require('os');
 const crypto = require('crypto');
 const vm = require('vm');
-const { DatabaseSync } = require('node:sqlite');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const TEACHER_PASSWORD = process.env.TEACHER_PASSWORD || 'admin123';
+const TEACHER_SESSION_SECRET = process.env.TEACHER_SESSION_SECRET || TEACHER_PASSWORD;
 const rootDir = __dirname;
 const isVercel = Boolean(process.env.VERCEL);
+const onlineDbUrl = process.env.TURSO_DATABASE_URL || process.env.LIBSQL_URL || '';
+const onlineDbToken = process.env.TURSO_AUTH_TOKEN || process.env.LIBSQL_AUTH_TOKEN || '';
 const dataDir = isVercel
   ? path.join(os.tmpdir(), 'history-reform-game')
   : path.join(rootDir, 'data');
 const dbPath = path.join(dataDir, 'history-game.sqlite');
 const gameDataPath = path.join(rootDir, 'js', 'gameData.js');
-const teacherTokens = new Map();
 
-fs.mkdirSync(dataDir, { recursive: true });
+function createDatabase() {
+  if (onlineDbUrl) {
+    const { createClient } = require('@libsql/client');
+    const client = createClient({
+      url: onlineDbUrl,
+      authToken: onlineDbToken || undefined
+    });
 
-const db = new DatabaseSync(dbPath);
-db.exec(`
+    const execute = async (sql, args = []) => client.execute({ sql, args });
+
+    return {
+      type: 'libsql',
+      async exec(sql) {
+        const statements = sql
+          .split(';')
+          .map(statement => statement.trim())
+          .filter(Boolean);
+        for (const statement of statements) {
+          await execute(statement);
+        }
+      },
+      async get(sql, args = []) {
+        const result = await execute(sql, args);
+        return result.rows[0];
+      },
+      async all(sql, args = []) {
+        const result = await execute(sql, args);
+        return result.rows;
+      },
+      async run(sql, args = []) {
+        const result = await execute(sql, args);
+        const lastInsertRowid = typeof result.lastInsertRowid === 'bigint'
+          ? Number(result.lastInsertRowid)
+          : result.lastInsertRowid;
+        return {
+          lastInsertRowid,
+          changes: result.rowsAffected
+        };
+      }
+    };
+  }
+
+  fs.mkdirSync(dataDir, { recursive: true });
+  const { DatabaseSync } = require('node:sqlite');
+  const database = new DatabaseSync(dbPath);
+
+  return {
+    type: 'sqlite',
+    async exec(sql) {
+      database.exec(sql);
+    },
+    async get(sql, args = []) {
+      return database.prepare(sql).get(...args);
+    },
+    async all(sql, args = []) {
+      return database.prepare(sql).all(...args);
+    },
+    async run(sql, args = []) {
+      const result = database.prepare(sql).run(...args);
+      return {
+        lastInsertRowid: result.lastInsertRowid,
+        changes: result.changes
+      };
+    }
+  };
+}
+
+const db = createDatabase();
+const dbReady = initializeDatabase();
+
+async function initializeDatabase() {
+  await db.exec(`
   PRAGMA journal_mode = WAL;
   PRAGMA foreign_keys = ON;
 
@@ -86,17 +155,22 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_level_results_completed ON level_results(completed_at);
   CREATE INDEX IF NOT EXISTS idx_student_logins_student ON student_logins(student_id);
   CREATE INDEX IF NOT EXISTS idx_documents_reform ON documents(reform_id);
-`);
+  `);
 
-try {
-  db.exec(`ALTER TABLE students ADD COLUMN last_login_at TEXT DEFAULT NULL`);
-} catch {}
+  try {
+    await db.exec(`ALTER TABLE students ADD COLUMN last_login_at TEXT DEFAULT NULL`);
+  } catch {}
 
-try {
-  db.exec(`ALTER TABLE students ADD COLUMN login_count INTEGER NOT NULL DEFAULT 0`);
-} catch {}
+  try {
+    await db.exec(`ALTER TABLE students ADD COLUMN login_count INTEGER NOT NULL DEFAULT 0`);
+  } catch {}
 
-seedDocuments();
+  await seedDocuments();
+}
+
+const asyncHandler = fn => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
 
 app.use(express.json({ limit: '1mb' }));
 app.use((req, res, next) => {
@@ -110,6 +184,11 @@ app.use((req, res, next) => {
 
   next();
 });
+
+app.use(asyncHandler(async (req, res, next) => {
+  await dbReady;
+  next();
+}));
 
 function cleanText(value) {
   return String(value || '').trim();
@@ -130,6 +209,39 @@ function parseJson(value, fallback) {
     return value ? JSON.parse(value) : fallback;
   } catch {
     return fallback;
+  }
+}
+
+function signTeacherPayload(payload) {
+  return crypto
+    .createHmac('sha256', TEACHER_SESSION_SECRET)
+    .update(payload)
+    .digest('base64url');
+}
+
+function createTeacherToken() {
+  const payload = Buffer.from(JSON.stringify({
+    role: 'teacher',
+    exp: Date.now() + 1000 * 60 * 60 * 8
+  })).toString('base64url');
+  return `${payload}.${signTeacherPayload(payload)}`;
+}
+
+function verifyTeacherToken(token) {
+  const [payload, signature] = String(token || '').split('.');
+  if (!payload || !signature) return false;
+
+  const expected = signTeacherPayload(payload);
+  const expectedBuffer = Buffer.from(expected);
+  const signatureBuffer = Buffer.from(signature);
+  if (expectedBuffer.length !== signatureBuffer.length) return false;
+  if (!crypto.timingSafeEqual(expectedBuffer, signatureBuffer)) return false;
+
+  try {
+    const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    return data.role === 'teacher' && Number(data.exp) > Date.now();
+  } catch {
+    return false;
   }
 }
 
@@ -189,8 +301,8 @@ function validateDocument(doc) {
   return '';
 }
 
-function seedDocuments() {
-  const count = db.prepare('SELECT COUNT(*) AS count FROM documents').get().count;
+async function seedDocuments() {
+  const count = (await db.get('SELECT COUNT(*) AS count FROM documents')).count;
   if (count > 0) return;
 
   let source;
@@ -201,15 +313,15 @@ function seedDocuments() {
     return;
   }
 
-  const insert = db.prepare(`
+  const insertSql = `
     INSERT INTO documents (
       id, reform, reform_id, title, image, images, original_text, annotation, sort_order
     )
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
+  `;
 
-  source.forEach((doc, index) => {
-    insert.run(
+  for (const [index, doc] of source.entries()) {
+    await db.run(insertSql, [
       cleanText(doc.id) || crypto.randomUUID(),
       cleanText(doc.reform),
       cleanText(doc.reformId),
@@ -219,23 +331,23 @@ function seedDocuments() {
       cleanText(doc.originalText),
       cleanText(doc.annotation),
       index
-    );
-  });
+    ]);
+  }
 }
 
-function ensureStudentRow(studentId) {
-  db.prepare(`
+async function ensureStudentRow(studentId) {
+  await db.run(`
     INSERT OR IGNORE INTO students (id, name, class_name)
     VALUES (?, ?, '')
-  `).run(studentId, `Student ${studentId}`);
+  `, [studentId, `Student ${studentId}`]);
 }
 
-function ensureProgressRow(studentId) {
-  ensureStudentRow(studentId);
-  db.prepare(`
+async function ensureProgressRow(studentId) {
+  await ensureStudentRow(studentId);
+  await db.run(`
     INSERT OR IGNORE INTO progress (student_id, total_score, completed_levels, max_streak, level_progress)
     VALUES (?, 0, 0, 0, '{}')
-  `).run(studentId);
+  `, [studentId]);
 }
 
 function progressResponse(row) {
@@ -250,74 +362,72 @@ function progressResponse(row) {
   };
 }
 
-function upsertStudent(name, className) {
+async function upsertStudent(name, className) {
   if (!name) {
     return null;
   }
 
-  let student = db.prepare(`
+  let student = await db.get(`
     SELECT id, name, class_name AS className, created_at AS createdAt,
            last_login_at AS lastLoginAt, login_count AS loginCount
     FROM students
     WHERE name = ? AND class_name = ?
-  `).get(name, className);
+  `, [name, className]);
 
   if (!student) {
-    const result = db.prepare(`
+    const result = await db.run(`
       INSERT INTO students (name, class_name)
       VALUES (?, ?)
-    `).run(name, className);
+    `, [name, className]);
 
-    student = db.prepare(`
+    student = await db.get(`
       SELECT id, name, class_name AS className, created_at AS createdAt,
              last_login_at AS lastLoginAt, login_count AS loginCount
       FROM students
       WHERE id = ?
-    `).get(result.lastInsertRowid);
+    `, [result.lastInsertRowid]);
   }
 
-  ensureProgressRow(student.id);
+  await ensureProgressRow(student.id);
   return student;
 }
 
-function recordStudentLogin(req, studentId) {
-  db.prepare(`
+async function recordStudentLogin(req, studentId) {
+  await db.run(`
     INSERT INTO student_logins (student_id, ip_address, user_agent)
     VALUES (?, ?, ?)
-  `).run(studentId, cleanText(req.ip), cleanText(req.get('user-agent')));
+  `, [studentId, cleanText(req.ip), cleanText(req.get('user-agent'))]);
 
-  db.prepare(`
+  await db.run(`
     UPDATE students
     SET last_login_at = datetime('now'),
         login_count = login_count + 1,
         updated_at = datetime('now')
     WHERE id = ?
-  `).run(studentId);
+  `, [studentId]);
 }
 
-function getStudent(studentId) {
-  return db.prepare(`
+async function getStudent(studentId) {
+  return db.get(`
     SELECT id, name, class_name AS className, created_at AS createdAt,
            last_login_at AS lastLoginAt, login_count AS loginCount
     FROM students
     WHERE id = ?
-  `).get(studentId);
+  `, [studentId]);
 }
 
 function requireTeacher(req, res, next) {
   const auth = req.get('authorization') || '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
-  const session = token ? teacherTokens.get(token) : null;
 
-  if (!session) {
+  if (!verifyTeacherToken(token)) {
     return res.status(401).json({ error: 'Teacher login required.' });
   }
 
-  session.lastSeenAt = Date.now();
   next();
 }
 
-app.post('/api/student/login', (req, res) => {
+app.post('/api/student/login', asyncHandler(async (req, res) => {
   const name = cleanText(req.body?.name);
   const className = cleanText(req.body?.className);
 
@@ -325,12 +435,12 @@ app.post('/api/student/login', (req, res) => {
     return res.status(400).json({ error: 'Student name is required.' });
   }
 
-  const student = upsertStudent(name, className);
-  recordStudentLogin(req, student.id);
-  res.json({ student: getStudent(student.id) });
-});
+  const student = await upsertStudent(name, className);
+  await recordStudentLogin(req, student.id);
+  res.json({ student: await getStudent(student.id) });
+}));
 
-app.post('/api/students', (req, res) => {
+app.post('/api/students', asyncHandler(async (req, res) => {
   const name = cleanText(req.body?.name);
   const className = cleanText(req.body?.className);
 
@@ -338,9 +448,9 @@ app.post('/api/students', (req, res) => {
     return res.status(400).json({ error: 'Student name is required.' });
   }
 
-  const student = upsertStudent(name, className);
+  const student = await upsertStudent(name, className);
   res.json({ student });
-});
+}));
 
 app.post('/api/teacher/login', (req, res) => {
   const password = String(req.body?.password || '');
@@ -349,36 +459,30 @@ app.post('/api/teacher/login', (req, res) => {
     return res.status(401).json({ error: 'Invalid teacher password.' });
   }
 
-  const token = crypto.randomUUID();
-  teacherTokens.set(token, {
-    createdAt: Date.now(),
-    lastSeenAt: Date.now()
-  });
-
-  res.json({ token, teacher: { name: 'teacher' } });
+  res.json({ token: createTeacherToken(), teacher: { name: 'teacher' } });
 });
 
 app.get('/api/teacher/me', requireTeacher, (req, res) => {
   res.json({ teacher: { name: 'teacher' } });
 });
 
-app.get('/api/progress', (req, res) => {
+app.get('/api/progress', asyncHandler(async (req, res) => {
   const studentId = toInt(req.query.studentId);
   if (!studentId) {
     return res.status(400).json({ error: 'studentId is required.' });
   }
 
-  ensureProgressRow(studentId);
-  const row = db.prepare(`
+  await ensureProgressRow(studentId);
+  const row = await db.get(`
     SELECT total_score, completed_levels, max_streak, level_progress, updated_at
     FROM progress
     WHERE student_id = ?
-  `).get(studentId);
+  `, [studentId]);
 
   res.json(progressResponse(row));
-});
+}));
 
-app.post('/api/progress', (req, res) => {
+app.post('/api/progress', asyncHandler(async (req, res) => {
   const studentId = toInt(req.body?.studentId);
   const levelProgress = req.body?.levelProgress && typeof req.body.levelProgress === 'object'
     ? req.body.levelProgress
@@ -391,8 +495,8 @@ app.post('/api/progress', (req, res) => {
     return res.status(400).json({ error: 'studentId is required.' });
   }
 
-  ensureProgressRow(studentId);
-  db.prepare(`
+  await ensureProgressRow(studentId);
+  await db.run(`
     UPDATE progress
     SET total_score = ?,
         completed_levels = ?,
@@ -400,24 +504,24 @@ app.post('/api/progress', (req, res) => {
         level_progress = ?,
         updated_at = datetime('now')
     WHERE student_id = ?
-  `).run(
+  `, [
     toInt(userStats.totalScore),
     toInt(userStats.completedLevels),
     toInt(userStats.maxStreak),
     JSON.stringify(levelProgress),
     studentId
-  );
+  ]);
 
-  const row = db.prepare(`
+  const row = await db.get(`
     SELECT total_score, completed_levels, max_streak, level_progress, updated_at
     FROM progress
     WHERE student_id = ?
-  `).get(studentId);
+  `, [studentId]);
 
   res.json(progressResponse(row));
-});
+}));
 
-app.post('/api/results', (req, res) => {
+app.post('/api/results', asyncHandler(async (req, res) => {
   const studentId = toInt(req.body?.studentId);
   const levelId = toInt(req.body?.levelId);
 
@@ -425,13 +529,14 @@ app.post('/api/results', (req, res) => {
     return res.status(400).json({ error: 'studentId and levelId are required.' });
   }
 
-  const result = db.prepare(`
+  await ensureProgressRow(studentId);
+  const result = await db.run(`
     INSERT INTO level_results (
       student_id, level_id, score, accuracy, stars, max_streak,
       total_questions, correct_answers, answers
     )
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
+  `, [
     studentId,
     levelId,
     toInt(req.body?.score),
@@ -441,28 +546,28 @@ app.post('/api/results', (req, res) => {
     toInt(req.body?.totalQuestions),
     toInt(req.body?.correctAnswers),
     JSON.stringify(Array.isArray(req.body?.answers) ? req.body.answers : [])
-  );
+  ]);
 
   res.status(201).json({ id: result.lastInsertRowid });
-});
+}));
 
-app.get('/api/documents', (req, res) => {
+app.get('/api/documents', asyncHandler(async (req, res) => {
   const reformId = cleanText(req.query.reformId);
   const rows = reformId
-    ? db.prepare(`
+    ? await db.all(`
         SELECT * FROM documents
         WHERE reform_id = ?
         ORDER BY sort_order ASC, created_at ASC
-      `).all(reformId)
-    : db.prepare(`
+      `, [reformId])
+    : await db.all(`
         SELECT * FROM documents
         ORDER BY sort_order ASC, created_at ASC
-      `).all();
+      `);
 
   res.json({ documents: rows.map(documentRowToApi) });
-});
+}));
 
-app.post('/api/teacher/documents', requireTeacher, (req, res) => {
+app.post('/api/teacher/documents', requireTeacher, asyncHandler(async (req, res) => {
   const doc = normalizeDocumentPayload(req.body);
   const error = validateDocument(doc);
 
@@ -470,12 +575,12 @@ app.post('/api/teacher/documents', requireTeacher, (req, res) => {
     return res.status(400).json({ error });
   }
 
-  db.prepare(`
+  await db.run(`
     INSERT INTO documents (
       id, reform, reform_id, title, image, images, original_text, annotation, sort_order
     )
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
+  `, [
     doc.id,
     doc.reform,
     doc.reformId,
@@ -485,15 +590,15 @@ app.post('/api/teacher/documents', requireTeacher, (req, res) => {
     doc.originalText,
     doc.annotation,
     doc.sortOrder
-  );
+  ]);
 
-  const row = db.prepare('SELECT * FROM documents WHERE id = ?').get(doc.id);
+  const row = await db.get('SELECT * FROM documents WHERE id = ?', [doc.id]);
   res.status(201).json({ document: documentRowToApi(row) });
-});
+}));
 
-app.put('/api/teacher/documents/:id', requireTeacher, (req, res) => {
+app.put('/api/teacher/documents/:id', requireTeacher, asyncHandler(async (req, res) => {
   const id = cleanText(req.params.id);
-  const existing = db.prepare('SELECT id FROM documents WHERE id = ?').get(id);
+  const existing = await db.get('SELECT id FROM documents WHERE id = ?', [id]);
 
   if (!existing) {
     return res.status(404).json({ error: 'Document not found.' });
@@ -506,7 +611,7 @@ app.put('/api/teacher/documents/:id', requireTeacher, (req, res) => {
     return res.status(400).json({ error });
   }
 
-  db.prepare(`
+  await db.run(`
     UPDATE documents
     SET reform = ?,
         reform_id = ?,
@@ -518,7 +623,7 @@ app.put('/api/teacher/documents/:id', requireTeacher, (req, res) => {
         sort_order = ?,
         updated_at = datetime('now')
     WHERE id = ?
-  `).run(
+  `, [
     doc.reform,
     doc.reformId,
     doc.title,
@@ -528,25 +633,25 @@ app.put('/api/teacher/documents/:id', requireTeacher, (req, res) => {
     doc.annotation,
     doc.sortOrder,
     id
-  );
+  ]);
 
-  const row = db.prepare('SELECT * FROM documents WHERE id = ?').get(id);
+  const row = await db.get('SELECT * FROM documents WHERE id = ?', [id]);
   res.json({ document: documentRowToApi(row) });
-});
+}));
 
-app.delete('/api/teacher/documents/:id', requireTeacher, (req, res) => {
+app.delete('/api/teacher/documents/:id', requireTeacher, asyncHandler(async (req, res) => {
   const id = cleanText(req.params.id);
-  const result = db.prepare('DELETE FROM documents WHERE id = ?').run(id);
+  const result = await db.run('DELETE FROM documents WHERE id = ?', [id]);
 
   if (result.changes === 0) {
     return res.status(404).json({ error: 'Document not found.' });
   }
 
   res.json({ ok: true });
-});
+}));
 
-app.get('/api/teacher/summary', requireTeacher, (req, res) => {
-  const rows = db.prepare(`
+app.get('/api/teacher/summary', requireTeacher, asyncHandler(async (req, res) => {
+  const rows = await db.all(`
     SELECT
       s.id,
       s.name,
@@ -566,7 +671,7 @@ app.get('/api/teacher/summary', requireTeacher, (req, res) => {
     LEFT JOIN level_results r ON r.student_id = s.id
     GROUP BY s.id
     ORDER BY totalScore DESC, completedLevels DESC, maxStreak DESC, s.created_at ASC
-  `).all();
+  `);
 
   res.json({
     students: rows.map(row => ({
@@ -585,40 +690,40 @@ app.get('/api/teacher/summary', requireTeacher, (req, res) => {
       lastCompletedAt: row.lastCompletedAt
     }))
   });
-});
+}));
 
-app.get('/api/teacher/results', requireTeacher, (req, res) => {
+app.get('/api/teacher/results', requireTeacher, asyncHandler(async (req, res) => {
   const studentId = toInt(req.query.studentId);
   if (!studentId) {
     return res.status(400).json({ error: 'studentId is required.' });
   }
 
-  const student = db.prepare(`
+  const student = await db.get(`
     SELECT id, name, class_name AS className
     FROM students
     WHERE id = ?
-  `).get(studentId);
+  `, [studentId]);
 
   if (!student) {
     return res.status(404).json({ error: 'Student not found.' });
   }
 
-  const results = db.prepare(`
+  const results = (await db.all(`
     SELECT id, level_id AS levelId, score, accuracy, stars, max_streak AS maxStreak,
            total_questions AS totalQuestions, correct_answers AS correctAnswers,
            answers, completed_at AS completedAt
     FROM level_results
     WHERE student_id = ?
     ORDER BY completed_at DESC, id DESC
-  `).all(studentId).map(row => ({
+  `, [studentId])).map(row => ({
     ...row,
     answers: parseJson(row.answers, [])
   }));
 
   res.json({ student, results });
-});
+}));
 
-app.get('/api/teacher/wrong-questions', requireTeacher, (req, res) => {
+app.get('/api/teacher/wrong-questions', requireTeacher, asyncHandler(async (req, res) => {
   const limit = Math.min(Math.max(toInt(req.query.limit, 10), 1), 50);
   const levels = loadGameLevels();
   const questionsByKey = new Map();
@@ -637,10 +742,10 @@ app.get('/api/teacher/wrong-questions', requireTeacher, (req, res) => {
   });
 
   const stats = new Map();
-  const rows = db.prepare(`
+  const rows = await db.all(`
     SELECT level_id AS levelId, answers
     FROM level_results
-  `).all();
+  `);
 
   rows.forEach(row => {
     const answers = parseJson(row.answers, []);
@@ -691,7 +796,7 @@ app.get('/api/teacher/wrong-questions', requireTeacher, (req, res) => {
     .slice(0, limit);
 
   res.json({ questions });
-});
+}));
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(rootDir, 'index - 副本.html'));
