@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const crypto = require('crypto');
 const vm = require('vm');
 const { DatabaseSync } = require('node:sqlite');
@@ -9,7 +10,10 @@ const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const TEACHER_PASSWORD = process.env.TEACHER_PASSWORD || 'admin123';
 const rootDir = __dirname;
-const dataDir = path.join(rootDir, 'data');
+const isVercel = Boolean(process.env.VERCEL);
+const dataDir = isVercel
+  ? path.join(os.tmpdir(), 'history-reform-game')
+  : path.join(rootDir, 'data');
 const dbPath = path.join(dataDir, 'history-game.sqlite');
 const gameDataPath = path.join(rootDir, 'js', 'gameData.js');
 const teacherTokens = new Map();
@@ -687,8 +691,12 @@ app.get('/', (req, res) => {
 
 app.use(express.static(rootDir));
 
-app.listen(PORT, () => {
-  console.log(`History game server running at http://localhost:${PORT}`);
-  console.log(`Teacher dashboard: http://localhost:${PORT}/teacher.html`);
-  console.log(`SQLite database: ${dbPath}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`History game server running at http://localhost:${PORT}`);
+    console.log(`Teacher dashboard: http://localhost:${PORT}/teacher.html`);
+    console.log(`SQLite database: ${dbPath}`);
+  });
+}
+
+module.exports = app;

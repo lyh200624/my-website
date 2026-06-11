@@ -1,0 +1,12 @@
+{
+  "name": "my-website-vercel",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "engines": {
+    "node": "22.x"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
