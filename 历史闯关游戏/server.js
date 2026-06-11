@@ -223,7 +223,15 @@ function seedDocuments() {
   });
 }
 
+function ensureStudentRow(studentId) {
+  db.prepare(`
+    INSERT OR IGNORE INTO students (id, name, class_name)
+    VALUES (?, ?, '')
+  `).run(studentId, `Student ${studentId}`);
+}
+
 function ensureProgressRow(studentId) {
+  ensureStudentRow(studentId);
   db.prepare(`
     INSERT OR IGNORE INTO progress (student_id, total_score, completed_levels, max_streak, level_progress)
     VALUES (?, 0, 0, 0, '{}')
