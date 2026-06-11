@@ -915,4 +915,6 @@
             timer = window.setTimeout(() => fn.apply(this, args), wait);
         };
     }
+
+    window.initGraph = initGraph;
 })();

@@ -604,7 +604,9 @@ function startGraph() {
     DOM.splashScreen.classList.add('hidden');
     DOM.mainMenu.classList.add('hidden');
     DOM.graphView.classList.remove('hidden');
-    initGraph(); // 初始化图谱
+    if (typeof window.initGraph === 'function') {
+        window.initGraph(); // 初始化图谱
+    }
 }
 
 function startGraphFromMenu() {
@@ -614,7 +616,9 @@ function startGraphFromMenu() {
     DOM.bubbleView.classList.add('hidden');
     DOM.documentView.classList.add('hidden');
     DOM.graphView.classList.remove('hidden');
-    initGraph();
+    if (typeof window.initGraph === 'function') {
+        window.initGraph();
+    }
 }
 
 function startBubble() {
