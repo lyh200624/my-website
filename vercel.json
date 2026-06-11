@@ -1,0 +1,9 @@
+{
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/历史闯关游戏/",
+      "permanent": false
+    }
+  ]
+}
