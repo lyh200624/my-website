@@ -1,0 +1,185 @@
+/* Homepage restore override: keep only title, login, and four modules centered */
+#splash-screen.splash-screen {
+    align-items: center !important;
+    justify-content: center !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    background: #17120c !important;
+}
+
+#splash-screen .splash-bg {
+    position: fixed !important;
+    inset: -20px !important;
+    z-index: 0 !important;
+    display: block !important;
+    opacity: 1 !important;
+    pointer-events: none !important;
+    overflow: hidden !important;
+    background:
+        linear-gradient(180deg, rgba(23, 18, 12, 0.36), rgba(23, 18, 12, 0.8)),
+        radial-gradient(circle at 50% 38%, rgba(201, 169, 98, 0.14), transparent 36%),
+        url("../background.png") center / cover no-repeat !important;
+    filter: blur(8px) saturate(0.86) contrast(1.04) brightness(0.72) !important;
+    transform: scale(1.06) !important;
+}
+
+#splash-screen .splash-bg::after {
+    content: "" !important;
+    position: absolute !important;
+    inset: 0 !important;
+    background:
+        linear-gradient(90deg, rgba(15, 11, 7, 0.76), rgba(15, 11, 7, 0.34) 35%, rgba(15, 11, 7, 0.46) 100%),
+        linear-gradient(180deg, rgba(15, 11, 7, 0.18), rgba(15, 11, 7, 0.72)) !important;
+}
+
+#splash-screen .splash-content {
+    position: relative !important;
+    z-index: 1 !important;
+}
+
+#splash-screen .splash-content {
+    width: min(1120px, 100%) !important;
+    min-height: 100dvh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 1.25rem !important;
+    text-align: center !important;
+    padding: 2rem 1.5rem !important;
+    box-sizing: border-box !important;
+}
+
+#splash-screen .splash-title,
+#splash-screen .splash-subtitle,
+#splash-screen .splash-quote,
+#splash-screen .home-login-panel,
+#splash-screen .mode-selection,
+#splash-screen .splash-footer,
+#splash-screen .splash-emblem {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    justify-self: auto !important;
+    align-self: center !important;
+    text-align: center !important;
+}
+
+#splash-screen .splash-quote {
+    max-width: 560px !important;
+}
+
+#splash-screen .home-login-panel {
+    display: flex !important;
+    justify-content: center !important;
+}
+
+#splash-screen .home-login-card {
+    width: min(560px, 100%) !important;
+    box-sizing: border-box !important;
+}
+
+#splash-screen .mode-selection {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 1rem !important;
+}
+
+#splash-screen .mode-btn {
+    min-height: 120px !important;
+}
+
+#splash-screen .mode-icon {
+    display: inline-flex !important;
+    width: auto !important;
+    height: auto !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: inherit !important;
+    font-size: 2rem !important;
+    line-height: 1 !important;
+    box-shadow: none !important;
+}
+
+#splash-screen .mode-btn::before,
+#splash-screen .splash-kicker,
+#splash-screen .splash-hero-panel,
+#splash-screen .history-scroll-panel {
+    display: none !important;
+}
+
+@media (max-width: 768px) {
+    #splash-screen.splash-screen {
+        align-items: stretch !important;
+        justify-content: flex-start !important;
+        min-height: 100dvh !important;
+        height: 100dvh !important;
+        max-height: 100dvh !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    #splash-screen .splash-content {
+        width: 100% !important;
+        max-width: 100vw !important;
+        min-height: auto !important;
+        justify-content: flex-start !important;
+        gap: 0.9rem !important;
+        padding: 1rem !important;
+    }
+
+    #splash-screen .splash-emblem {
+        margin-top: 0 !important;
+    }
+
+    #splash-screen .splash-quote,
+    #splash-screen .home-login-panel,
+    #splash-screen .home-login-card,
+    #splash-screen .mode-selection,
+    #splash-screen .mode-btn {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    #splash-screen .home-login-title-row,
+    #splash-screen .home-login-actions {
+        flex-wrap: wrap !important;
+    }
+
+    #splash-screen .home-login-title-row > div {
+        min-width: 0 !important;
+    }
+
+    #splash-screen .login-status-pill {
+        max-width: 100% !important;
+    }
+
+    #splash-screen .home-login-submit,
+    #splash-screen .home-login-secondary {
+        flex: 1 1 130px !important;
+        min-width: 0 !important;
+    }
+
+    #splash-screen .mode-selection {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 0.75rem !important;
+    }
+
+    #splash-screen .mode-btn {
+        min-height: 96px !important;
+        padding: 0.7rem 0.55rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    #splash-screen .splash-content {
+        padding: 0.85rem !important;
+    }
+
+    #splash-screen .mode-selection {
+        grid-template-columns: 1fr !important;
+    }
+}

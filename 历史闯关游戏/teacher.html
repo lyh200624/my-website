@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>教师成绩面板 - 变法风云</title>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --panel: #ffffff;
+      --sidebar: #20242c;
+      --sidebar-soft: #313a46;
+      --text: #1f2937;
+      --muted: #667085;
+      --line: #e5e7eb;
+      --primary: #0f766e;
+      --primary-dark: #115e59;
+      --danger: #b42318;
+      --success: #087443;
+      --warning: #b7791f;
+      --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    .login-page {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background:
+        linear-gradient(135deg, rgba(15, 118, 110, 0.12), transparent 38%),
+        linear-gradient(315deg, rgba(8, 116, 67, 0.1), transparent 36%),
+        var(--bg);
+    }
+
+    .login-panel {
+      width: min(420px, 100%);
+      padding: 28px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .login-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .brand-mark {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background: var(--primary);
+      font-weight: 800;
+    }
+
+    .login-panel h1,
+    .login-panel h2 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .login-panel p {
+      margin: 8px 0 22px;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    .admin-shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 240px minmax(0, 1fr);
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 20px 16px;
+      color: #e5e7eb;
+      background: var(--sidebar);
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 4px 8px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .sidebar-brand strong {
+      display: block;
+      color: #fff;
+      font-size: 16px;
+    }
+
+    .sidebar-brand span,
+    .nav-section {
+      color: #9ca3af;
+      font-size: 12px;
+    }
+
+    .nav-section {
+      margin: 22px 8px 8px;
+      text-transform: uppercase;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 40px;
+      padding: 0 12px;
+      border-radius: 6px;
+      color: #cbd5e1;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .nav-link.is-active {
+      color: #fff;
+      background: var(--sidebar-soft);
+    }
+
+    .nav-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 99px;
+      background: #2dd4bf;
+    }
+
+    .workspace {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      min-height: 68px;
+      padding: 0 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(10px);
+    }
+
+    .page-title h1 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.2;
+    }
+
+    .page-title p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .content {
+      padding: 24px 28px 36px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-header h2,
+    .document-admin h2,
+    .details h2 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.3;
+    }
+
+    label {
+      display: block;
+      margin: 12px 0 6px;
+      color: #344054;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      height: 40px;
+      padding: 0 11px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--text);
+      background: #fff;
+      font: inherit;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    textarea {
+      height: auto;
+      min-height: 88px;
+      padding-top: 9px;
+      padding-bottom: 9px;
+      resize: vertical;
+      line-height: 1.55;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: #5eead4;
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button,
+    .link-button {
+      min-height: 36px;
+      padding: 0 14px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      color: #fff;
+      background: var(--primary);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+
+    button:hover,
+    .link-button:hover {
+      background: var(--primary-dark);
+    }
+
+    .ghost-button {
+      color: #344054;
+      background: #fff;
+      border-color: var(--line);
+    }
+
+    .ghost-button:hover {
+      color: #111827;
+      background: #f9fafb;
+      border-color: #d0d5dd;
+    }
+
+    .status {
+      min-height: 28px;
+      padding: 5px 10px;
+      border: 1px solid #bbf7d0;
+      border-radius: 99px;
+      color: var(--success);
+      background: #f0fdf4;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .error {
+      min-height: 20px;
+      margin-top: 10px;
+      color: var(--danger);
+      font-size: 14px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(140px, 1fr));
+      gap: 14px;
+    }
+
+    .metric {
+      min-height: 96px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 10px;
+      font-size: 28px;
+      line-height: 1;
+      color: var(--text);
+    }
+
+    .wrong-chart {
+      display: grid;
+      gap: 12px;
+      padding: 18px;
+    }
+
+    .wrong-toggle {
+      min-height: 32px;
+      padding: 0 12px;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .wrong-toggle[hidden] {
+      display: none !important;
+    }
+
+    .wrong-summary-note {
+      margin: -4px 2px 2px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .wrong-row {
+      display: grid;
+      grid-template-columns: 40px minmax(220px, 1fr) minmax(180px, 36%);
+      gap: 14px;
+      align-items: center;
+      min-height: 64px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .wrong-rank {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      color: #0f766e;
+      background: #ccfbf1;
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    .wrong-meta {
+      min-width: 0;
+    }
+
+    .wrong-kicker {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 5px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .wrong-question {
+      overflow: hidden;
+      color: var(--text);
+      font-weight: 600;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .wrong-bar-wrap {
+      display: grid;
+      gap: 7px;
+    }
+
+    .wrong-bar-track {
+      height: 10px;
+      overflow: hidden;
+      border-radius: 99px;
+      background: #edf2f7;
+    }
+
+    .wrong-bar-fill {
+      height: 100%;
+      min-width: 6px;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #0f766e, #14b8a6);
+    }
+
+    .wrong-values {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .wrong-values strong {
+      color: var(--danger);
+      font-size: 14px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 8px;
+    }
+
+    .student-card-list {
+      display: none;
+    }
+
+    .student-card {
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .student-card-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .student-card-title {
+      min-width: 0;
+    }
+
+    .student-card-title strong {
+      display: block;
+      overflow-wrap: anywhere;
+      font-size: 16px;
+    }
+
+    .student-card-title span,
+    .student-card-meta span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .student-card-score {
+      flex-shrink: 0;
+      min-width: 72px;
+      padding: 7px 9px;
+      border-radius: 8px;
+      color: #0f766e;
+      background: #ccfbf1;
+      text-align: center;
+      font-weight: 800;
+    }
+
+    .student-card-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .student-card-metric {
+      padding: 9px;
+      border-radius: 6px;
+      background: #f8fafc;
+    }
+
+    .student-card-metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .student-card-metric strong {
+      display: block;
+      margin-top: 3px;
+      font-size: 16px;
+    }
+
+    .student-card-stars {
+      overflow-wrap: anywhere;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .student-card-actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 980px;
+    }
+
+    th,
+    td {
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      white-space: nowrap;
+      font-size: 14px;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      color: #475467;
+      background: #f9fafb;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    tr:hover td { background: #f8fafc; }
+
+    .stars {
+      color: var(--warning);
+      font-weight: 700;
+    }
+
+    .empty,
+    .error-box {
+      padding: 28px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .error-box { line-height: 1.8; }
+
+    .error-box code {
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #eef2ff;
+      color: #3730a3;
+    }
+
+    .details {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .result-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .result-item {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(100px, 1fr));
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fbfcfd;
+      font-size: 14px;
+    }
+
+    .document-admin {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .document-admin-grid {
+      display: grid;
+      grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
+      gap: 0;
+      align-items: start;
+    }
+
+    .document-form {
+      display: grid;
+      gap: 6px;
+      padding: 18px;
+      border-right: 1px solid var(--line);
+    }
+
+    .document-list {
+      display: grid;
+      gap: 10px;
+      max-height: 560px;
+      overflow: auto;
+      padding: 18px;
+    }
+
+    .document-list-panel .toolbar {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .document-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+    }
+
+    .document-row strong {
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    .document-row span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .document-row-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    [hidden] { display: none !important; }
+
+    @media (max-width: 980px) {
+      .admin-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+        height: auto;
+        display: none;
+      }
+
+      .metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .wrong-row {
+        grid-template-columns: 36px minmax(0, 1fr);
+      }
+
+      .wrong-bar-wrap {
+        grid-column: 2;
+      }
+
+      .document-admin-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .document-form {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+    }
+
+    @media (max-width: 720px) {
+      .topbar {
+        position: static;
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 16px;
+      }
+
+      .content {
+        padding: 16px;
+      }
+
+      .panel-header,
+      .wrong-chart,
+      .document-form,
+      .document-list,
+      .document-list-panel .toolbar {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+
+      .toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .metrics { grid-template-columns: 1fr 1fr; }
+      .result-item { grid-template-columns: 1fr 1fr; }
+      .wrong-row {
+        grid-template-columns: 1fr;
+      }
+      .wrong-bar-wrap {
+        grid-column: auto;
+      }
+      .wrong-question {
+        white-space: normal;
+        line-height: 1.55;
+      }
+      .wrong-values {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+      .table-wrap {
+        display: none;
+      }
+      .student-card-list {
+        display: grid;
+        gap: 12px;
+        padding: 14px;
+      }
+      .student-card-actions button {
+        width: 100%;
+      }
+      .document-row {
+        grid-template-columns: 1fr;
+      }
+      .document-row span {
+        overflow-wrap: anywhere;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .metrics { grid-template-columns: 1fr; }
+      .actions { width: 100%; }
+      button,
+      .link-button { flex: 1; }
+      .login-page { padding: 14px; }
+      .login-panel { padding: 20px; }
+      .login-brand { align-items: flex-start; }
+      .student-card-grid { grid-template-columns: 1fr; }
+      .student-card-head { flex-direction: column; }
+      .student-card-score { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main class="login-page" id="login-page">
+    <section class="login-panel" id="login-panel">
+      <div class="login-brand">
+        <div class="brand-mark">变</div>
+        <div>
+          <h1>变法风云管理后台</h1>
+          <p>教师端数据管理</p>
+        </div>
+      </div>
+      <h2>教师登录</h2>
+      <p>请输入教师密码。默认密码为 <strong>admin123</strong>，可通过环境变量 <code>TEACHER_PASSWORD</code> 修改。</p>
+      <form id="login-form">
+        <label for="teacher-password">教师密码</label>
+        <input id="teacher-password" name="password" type="password" autocomplete="current-password" required>
+        <div class="error" id="login-error"></div>
+        <div class="actions">
+          <button type="submit">登录</button>
+          <a class="link-button ghost-button" id="login-game-link" href="/">返回游戏</a>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <section class="admin-shell" id="dashboard" hidden>
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-mark">变</div>
+        <div>
+          <strong>变法风云</strong>
+          <span>管理后台</span>
+        </div>
+      </div>
+      <div class="nav-section">数据中心</div>
+      <a class="nav-link is-active" href="#summary">
+        <span class="nav-dot"></span>
+        学生成绩
+      </a>
+      <a class="nav-link" href="#wrong-questions-panel">
+        <span class="nav-dot"></span>
+        易错题统计
+      </a>
+      <a class="nav-link" href="#documents">
+        <span class="nav-dot"></span>
+        史料管理
+      </a>
+    </aside>
+
+    <div class="workspace">
+      <header class="topbar">
+        <div class="page-title">
+          <h1>教师成绩面板</h1>
+          <p>学生登录、通关进度、得分记录与图文史料维护</p>
+        </div>
+        <div class="actions">
+          <button id="refresh-btn">刷新数据</button>
+          <button class="ghost-button" id="logout-btn">退出登录</button>
+          <a class="link-button ghost-button" id="game-link" href="/">返回游戏</a>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="toolbar">
+          <div class="status" id="status">正在加载...</div>
+        </div>
+
+        <section class="metrics" id="metrics" hidden></section>
+
+        <section class="panel" id="wrong-questions-panel">
+          <div class="panel-header">
+            <h2>易错题统计</h2>
+            <button type="button" class="ghost-button wrong-toggle" id="wrong-questions-toggle" hidden>展开全部</button>
+          </div>
+          <div class="wrong-chart" id="wrong-questions">
+            <div class="empty">正在加载易错题数据...</div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>学生成绩汇总</h2>
+          </div>
+          <div class="table-wrap" id="summary"></div>
+        </section>
+
+        <section class="details" id="details" hidden></section>
+
+        <section class="document-admin" id="documents">
+          <div class="panel-header">
+            <h2>图文史料管理</h2>
+          </div>
+        <div class="document-admin-grid">
+          <form class="document-form" id="document-form">
+            <input type="hidden" id="document-id">
+            <label for="document-reform-id">所属变法</label>
+            <select id="document-reform-id" required>
+              <option value="shangyang">商鞅变法</option>
+              <option value="xiaowen">孝文帝改革</option>
+              <option value="wanganshi">王安石变法</option>
+              <option value="zhangjuzheng">张居正改革</option>
+              <option value="wuxu">戊戌变法</option>
+              <option value="reform">改革开放</option>
+            </select>
+            <label for="document-title">标题</label>
+            <input id="document-title" required>
+            <label for="document-image">主图路径或图片 URL</label>
+            <input id="document-image" placeholder="../图片3/1.jpg">
+            <label for="document-images">多图路径，每行一个</label>
+            <textarea id="document-images" placeholder="../图片3/1.jpg&#10;../图片3/2.jpg"></textarea>
+            <label for="document-original">原文史料</label>
+            <textarea id="document-original" required></textarea>
+            <label for="document-annotation">白话注解</label>
+            <textarea id="document-annotation" required></textarea>
+            <label for="document-sort">排序</label>
+            <input id="document-sort" type="number" value="0">
+            <div class="actions">
+              <button type="submit">保存史料</button>
+              <button type="button" class="ghost-button" id="document-reset">新建</button>
+            </div>
+          </form>
+          <div class="document-list-panel">
+            <div class="toolbar">
+              <strong>史料列表</strong>
+              <button type="button" class="ghost-button" id="documents-refresh">刷新史料</button>
+            </div>
+            <div class="document-list" id="document-list"></div>
+          </div>
+        </div>
+      </section>
+      </main>
+    </div>
+  </section>
+
+  <script>
+    function resolveApiBase() {
+      if (window.location.protocol === 'file:') return 'http://localhost:3000';
+      if (['localhost', '127.0.0.1', '::1'].includes(window.location.hostname) && window.location.port !== '3000') {
+        return 'http://localhost:3000';
+      }
+      return '';
+    }
+
+    const API_BASE = resolveApiBase();
+    const TOKEN_KEY = 'historyGameTeacherToken';
+    const loginPage = document.getElementById('login-page');
+    const loginPanel = document.getElementById('login-panel');
+    const dashboard = document.getElementById('dashboard');
+    const loginForm = document.getElementById('login-form');
+    const loginError = document.getElementById('login-error');
+    const summaryEl = document.getElementById('summary');
+    const detailsEl = document.getElementById('details');
+    const metricsEl = document.getElementById('metrics');
+    const wrongQuestionsEl = document.getElementById('wrong-questions');
+    const wrongQuestionsToggle = document.getElementById('wrong-questions-toggle');
+    const statusEl = document.getElementById('status');
+    const refreshBtn = document.getElementById('refresh-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const gameLink = document.getElementById('game-link');
+    const loginGameLink = document.getElementById('login-game-link');
+    const documentForm = document.getElementById('document-form');
+    const documentList = document.getElementById('document-list');
+    const documentsRefresh = document.getElementById('documents-refresh');
+    const documentReset = document.getElementById('document-reset');
+    const reformNames = {
+      shangyang: '商鞅变法',
+      xiaowen: '孝文帝改革',
+      wanganshi: '王安石变法',
+      zhangjuzheng: '张居正改革',
+      wuxu: '戊戌变法',
+      reform: '改革开放'
+    };
+    let teacherDocuments = [];
+    let latestWrongQuestions = [];
+    let wrongQuestionsExpanded = false;
+    const WRONG_QUESTIONS_COLLAPSED_COUNT = 3;
+
+    if (API_BASE) {
+      gameLink.href = API_BASE + '/';
+      loginGameLink.href = API_BASE + '/';
+    }
+
+    function apiUrl(path) {
+      return API_BASE + path;
+    }
+
+    function getToken() {
+      return localStorage.getItem(TOKEN_KEY) || '';
+    }
+
+    function setToken(token) {
+      localStorage.setItem(TOKEN_KEY, token);
+    }
+
+    function clearToken() {
+      localStorage.removeItem(TOKEN_KEY);
+    }
+
+    async function apiFetch(path, options = {}) {
+      const response = await fetch(apiUrl(path), {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + getToken(),
+          ...(options.headers || {})
+        }
+      });
+
+      if (response.status === 401) {
+        clearToken();
+        showLogin('登录已过期，请重新登录。');
+        throw new Error('请先登录教师账号');
+      }
+
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      return response.json();
+    }
+
+    function showLogin(message = '') {
+      dashboard.hidden = true;
+      loginPage.hidden = false;
+      loginPanel.hidden = false;
+      loginError.textContent = message;
+      document.getElementById('teacher-password').focus();
+    }
+
+    function showDashboard() {
+      loginPage.hidden = true;
+      loginPanel.hidden = true;
+      dashboard.hidden = false;
+    }
+
+    async function loginTeacher(password) {
+      const response = await fetch(apiUrl('/api/teacher/login'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+
+      if (!response.ok) {
+        throw new Error(response.status === 401 ? '教师密码错误。' : '登录失败：HTTP ' + response.status);
+      }
+
+      const data = await response.json();
+      setToken(data.token);
+    }
+
+    async function verifyTeacher() {
+      if (!getToken()) {
+        showLogin();
+        return;
+      }
+
+      try {
+        await apiFetch('/api/teacher/me');
+        showDashboard();
+        await loadSummary();
+        await loadWrongQuestions();
+        await loadDocuments();
+      } catch {
+        showLogin('请重新登录。');
+      }
+    }
+
+    function stars(count) {
+      const value = Number(count || 0);
+      return '<span class="stars">' + '★'.repeat(value) + '☆'.repeat(Math.max(0, 3 - value)) + '</span>';
+    }
+
+    function formatDate(value) {
+      if (!value) return '-';
+      const normalized = String(value).includes('T') ? value : String(value).replace(' ', 'T') + 'Z';
+      const date = new Date(normalized);
+      return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+    }
+
+    function renderLevelProgress(progress) {
+      const items = [];
+      for (let i = 1; i <= 6; i += 1) {
+        items.push('第' + i + '关 ' + stars(progress?.[i]?.stars || 0));
+      }
+      return items.join('　');
+    }
+
+    async function loadSummary() {
+      statusEl.textContent = '正在连接后端...';
+      detailsEl.hidden = true;
+
+      try {
+        const data = await apiFetch('/api/teacher/summary');
+        const students = data.students || [];
+        renderMetrics(students);
+        renderSummary(students);
+        statusEl.textContent = '已登录，共 ' + students.length + ' 名学生';
+      } catch (error) {
+        metricsEl.hidden = true;
+        summaryEl.innerHTML = `
+          <div class="error-box">
+            <strong>无法连接后端服务。</strong><br>
+            请在项目目录运行 <code>npm start</code>，然后打开
+            <code>http://localhost:3000/teacher.html</code>。<br>
+            当前请求地址：<code>${escapeHtml(apiUrl('/api/teacher/summary'))}</code>
+          </div>
+        `;
+        statusEl.textContent = error.message || '连接失败';
+      }
+    }
+
+    async function loadWrongQuestions() {
+      if (!wrongQuestionsEl) return;
+      wrongQuestionsEl.innerHTML = '<div class="empty">正在加载易错题数据...</div>';
+      if (wrongQuestionsToggle) wrongQuestionsToggle.hidden = true;
+
+      try {
+        const data = await apiFetch('/api/teacher/wrong-questions?limit=10');
+        latestWrongQuestions = data.questions || [];
+        wrongQuestionsExpanded = false;
+        renderWrongQuestions();
+      } catch (error) {
+        if (wrongQuestionsToggle) wrongQuestionsToggle.hidden = true;
+        wrongQuestionsEl.innerHTML = `
+          <div class="error-box">
+            易错题统计加载失败：${escapeHtml(error.message || '连接失败')}
+          </div>
+        `;
+      }
+    }
+
+    function updateWrongQuestionsToggle() {
+      if (!wrongQuestionsToggle) return;
+
+      const hasMore = latestWrongQuestions.length > WRONG_QUESTIONS_COLLAPSED_COUNT;
+      wrongQuestionsToggle.hidden = !hasMore;
+      wrongQuestionsToggle.textContent = wrongQuestionsExpanded ? '收起' : `展开全部（${latestWrongQuestions.length}）`;
+      wrongQuestionsToggle.setAttribute('aria-expanded', String(wrongQuestionsExpanded));
+    }
+
+    function renderWrongQuestions() {
+      const questions = latestWrongQuestions;
+
+      if (!questions.length) {
+        if (wrongQuestionsToggle) wrongQuestionsToggle.hidden = true;
+        wrongQuestionsEl.innerHTML = '<div class="empty">暂无错题数据。学生完成答题后会显示在这里。</div>';
+        return;
+      }
+
+      const maxWrongCount = Math.max(...questions.map(item => Number(item.wrongCount || 0)), 1);
+      const visibleQuestions = wrongQuestionsExpanded
+        ? questions
+        : questions.slice(0, WRONG_QUESTIONS_COLLAPSED_COUNT);
+      const summaryNote = questions.length > WRONG_QUESTIONS_COLLAPSED_COUNT
+        ? `<div class="wrong-summary-note">${wrongQuestionsExpanded ? '已展开全部' : `默认显示前 ${WRONG_QUESTIONS_COLLAPSED_COUNT} 条`}，共 ${questions.length} 条易错题。</div>`
+        : '';
+
+      wrongQuestionsEl.innerHTML = summaryNote + visibleQuestions.map((item, index) => {
+        const rank = wrongQuestionsExpanded ? index + 1 : index + 1;
+        const wrongCount = Number(item.wrongCount || 0);
+        const attemptCount = Number(item.attemptCount || 0);
+        const wrongRate = Math.round(Number(item.wrongRate || 0) * 100);
+        const barWidth = Math.max(4, Math.round((wrongCount / maxWrongCount) * 100));
+        const questionText = item.question || '题目内容缺失';
+
+        return `
+          <div class="wrong-row">
+            <div class="wrong-rank">${rank}</div>
+            <div class="wrong-meta">
+              <div class="wrong-kicker">
+                <span>${escapeHtml(item.levelName || ('第' + item.levelId + '关'))}</span>
+                <span>第 ${Number(item.questionNo || item.questionIndex + 1)} 题</span>
+                <span>${escapeHtml(item.type || 'question')}</span>
+              </div>
+              <div class="wrong-question" title="${escapeHtml(questionText)}">${escapeHtml(questionText)}</div>
+            </div>
+            <div class="wrong-bar-wrap">
+              <div class="wrong-bar-track">
+                <div class="wrong-bar-fill" style="width: ${barWidth}%"></div>
+              </div>
+              <div class="wrong-values">
+                <span><strong>${wrongCount}</strong> 次错误</span>
+                <span>${attemptCount} 次作答 · 错误率 ${wrongRate}%</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      updateWrongQuestionsToggle();
+    }
+
+    async function refreshDashboardData() {
+      await loadSummary();
+      await loadWrongQuestions();
+    }
+
+    function renderMetrics(students) {
+      const totalScore = students.reduce((sum, item) => sum + Number(item.totalScore || 0), 0);
+      const totalAttempts = students.reduce((sum, item) => sum + Number(item.attempts || 0), 0);
+      const completed = students.reduce((sum, item) => sum + Number(item.completedLevels || 0), 0);
+      const loginCount = students.reduce((sum, item) => sum + Number(item.loginCount || 0), 0);
+      const avgScore = students.length ? Math.round(totalScore / students.length) : 0;
+
+      metricsEl.hidden = false;
+      metricsEl.innerHTML = `
+        <div class="metric"><span>学生人数</span><strong>${students.length}</strong></div>
+        <div class="metric"><span>平均总分</span><strong>${avgScore}</strong></div>
+        <div class="metric"><span>累计通关数</span><strong>${completed}</strong></div>
+        <div class="metric"><span>闯关记录</span><strong>${totalAttempts}</strong></div>
+        <div class="metric"><span>登录次数</span><strong>${loginCount}</strong></div>
+      `;
+    }
+
+    function renderSummary(students) {
+      if (!students.length) {
+        summaryEl.innerHTML = '<div class="empty">暂无学生成绩。学生登录或完成关卡后会显示在这里。</div>';
+        return;
+      }
+
+      summaryEl.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>学生</th>
+              <th>班级</th>
+              <th>总分</th>
+              <th>已通关</th>
+              <th>最高连击</th>
+              <th>尝试次数</th>
+              <th>登录次数</th>
+              <th>最近登录</th>
+              <th>各关星级</th>
+              <th>最后提交</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${students.map(student => `
+              <tr>
+                <td>${escapeHtml(student.name)}</td>
+                <td>${escapeHtml(student.className || '-')}</td>
+                <td>${student.totalScore}</td>
+                <td>${student.completedLevels}</td>
+                <td>${student.maxStreak}</td>
+                <td>${student.attempts}</td>
+                <td>${student.loginCount || 0}</td>
+                <td>${formatDate(student.lastLoginAt)}</td>
+                <td>${renderLevelProgress(student.levelProgress)}</td>
+                <td>${formatDate(student.lastCompletedAt || student.updatedAt)}</td>
+                <td><button data-student-id="${student.id}">详情</button></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <div class="student-card-list">
+          ${students.map(student => `
+            <article class="student-card">
+              <div class="student-card-head">
+                <div class="student-card-title">
+                  <strong>${escapeHtml(student.name)}</strong>
+                  <span>${escapeHtml(student.className || '未填写班级')}</span>
+                </div>
+                <div class="student-card-score">${student.totalScore} 分</div>
+              </div>
+              <div class="student-card-grid">
+                <div class="student-card-metric"><span>已通关</span><strong>${student.completedLevels}</strong></div>
+                <div class="student-card-metric"><span>最高连击</span><strong>${student.maxStreak}</strong></div>
+                <div class="student-card-metric"><span>尝试次数</span><strong>${student.attempts}</strong></div>
+                <div class="student-card-metric"><span>登录次数</span><strong>${student.loginCount || 0}</strong></div>
+              </div>
+              <div class="student-card-meta">
+                <span>最近登录：${formatDate(student.lastLoginAt)}</span><br>
+                <span>最后提交：${formatDate(student.lastCompletedAt || student.updatedAt)}</span>
+              </div>
+              <div class="student-card-stars">${renderLevelProgress(student.levelProgress)}</div>
+              <div class="student-card-actions">
+                <button data-student-id="${student.id}">查看详情</button>
+              </div>
+            </article>
+          `).join('')}
+        </div>
+      `;
+
+      summaryEl.querySelectorAll('[data-student-id]').forEach(button => {
+        button.addEventListener('click', () => loadStudentResults(button.dataset.studentId));
+      });
+    }
+
+    async function loadStudentResults(studentId) {
+      statusEl.textContent = '正在加载学生详情...';
+
+      try {
+        const data = await apiFetch('/api/teacher/results?studentId=' + encodeURIComponent(studentId));
+        renderDetails(data.student, data.results || []);
+        statusEl.textContent = '学生详情已加载';
+      } catch (error) {
+        statusEl.textContent = error.message || '详情加载失败';
+      }
+    }
+
+    function renderDetails(student, results) {
+      detailsEl.hidden = false;
+      detailsEl.innerHTML = `
+        <h2>${escapeHtml(student.name)} 的闯关记录</h2>
+        <div class="result-list">
+          ${results.length ? results.map(result => `
+            <div class="result-item">
+              <span>第 ${result.levelId} 关</span>
+              <span>得分：${result.score}</span>
+              <span>正确率：${Math.round(Number(result.accuracy || 0) * 100)}%</span>
+              <span>星级：${stars(result.stars)}</span>
+              <span>最高连击：${result.maxStreak}</span>
+              <span>${formatDate(result.completedAt)}</span>
+            </div>
+          `).join('') : '<div class="empty">暂无闯关记录。</div>'}
+        </div>
+      `;
+      detailsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    async function loadDocuments() {
+      if (!documentList) return;
+      documentList.innerHTML = '<div class="empty">正在加载史料...</div>';
+
+      try {
+        const data = await apiFetch('/api/documents');
+        teacherDocuments = data.documents || [];
+        renderDocumentList();
+      } catch (error) {
+        documentList.innerHTML = '<div class="error-box">史料加载失败：' + escapeHtml(error.message) + '</div>';
+      }
+    }
+
+    function renderDocumentList() {
+      if (!teacherDocuments.length) {
+        documentList.innerHTML = '<div class="empty">暂无史料。</div>';
+        return;
+      }
+
+      documentList.innerHTML = teacherDocuments.map(doc => `
+        <div class="document-row">
+          <div>
+            <strong>${escapeHtml(doc.title)}</strong>
+            <span>${escapeHtml(doc.reform)} · ${escapeHtml(doc.id)}</span>
+          </div>
+          <div class="document-row-actions">
+            <button type="button" data-edit-document="${escapeHtml(doc.id)}">编辑</button>
+            <button type="button" class="ghost-button" data-delete-document="${escapeHtml(doc.id)}">删除</button>
+          </div>
+        </div>
+      `).join('');
+
+      documentList.querySelectorAll('[data-edit-document]').forEach(button => {
+        button.addEventListener('click', () => editDocument(button.dataset.editDocument));
+      });
+
+      documentList.querySelectorAll('[data-delete-document]').forEach(button => {
+        button.addEventListener('click', () => deleteDocument(button.dataset.deleteDocument));
+      });
+    }
+
+    function getDocumentFormPayload() {
+      const reformId = document.getElementById('document-reform-id').value;
+      const imagesText = document.getElementById('document-images').value;
+
+      return {
+        id: document.getElementById('document-id').value.trim(),
+        reformId,
+        reform: reformNames[reformId] || reformId,
+        title: document.getElementById('document-title').value.trim(),
+        image: document.getElementById('document-image').value.trim(),
+        images: imagesText.split(/\r?\n|,/).map(item => item.trim()).filter(Boolean),
+        originalText: document.getElementById('document-original').value.trim(),
+        annotation: document.getElementById('document-annotation').value.trim(),
+        sortOrder: Number(document.getElementById('document-sort').value || 0)
+      };
+    }
+
+    function setDocumentForm(doc = null) {
+      document.getElementById('document-id').value = doc?.id || '';
+      document.getElementById('document-reform-id').value = doc?.reformId || 'shangyang';
+      document.getElementById('document-title').value = doc?.title || '';
+      document.getElementById('document-image').value = doc?.image || '';
+      document.getElementById('document-images').value = Array.isArray(doc?.images) ? doc.images.join('\n') : '';
+      document.getElementById('document-original').value = doc?.originalText || '';
+      document.getElementById('document-annotation').value = doc?.annotation || '';
+      document.getElementById('document-sort').value = doc?.sortOrder || 0;
+    }
+
+    function editDocument(id) {
+      const doc = teacherDocuments.find(item => item.id === id);
+      if (!doc) return;
+      setDocumentForm(doc);
+      documentForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    async function saveDocument(event) {
+      event.preventDefault();
+      const payload = getDocumentFormPayload();
+      const isEdit = Boolean(payload.id);
+      const path = isEdit
+        ? '/api/teacher/documents/' + encodeURIComponent(payload.id)
+        : '/api/teacher/documents';
+
+      if (!payload.title || !payload.originalText || !payload.annotation) {
+        statusEl.textContent = '请填写标题、原文史料和白话注解。';
+        return;
+      }
+
+      try {
+        await apiFetch(path, {
+          method: isEdit ? 'PUT' : 'POST',
+          body: JSON.stringify(payload)
+        });
+        setDocumentForm();
+        await loadDocuments();
+        statusEl.textContent = '史料已保存，学生端刷新图文史料即可看到更新。';
+      } catch (error) {
+        statusEl.textContent = '史料保存失败：' + error.message;
+      }
+    }
+
+    async function deleteDocument(id) {
+      if (!window.confirm('确定删除这条史料吗？')) return;
+
+      try {
+        await apiFetch('/api/teacher/documents/' + encodeURIComponent(id), {
+          method: 'DELETE'
+        });
+        if (document.getElementById('document-id').value === id) {
+          setDocumentForm();
+        }
+        await loadDocuments();
+        statusEl.textContent = '史料已删除。';
+      } catch (error) {
+        statusEl.textContent = '史料删除失败：' + error.message;
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[char]));
+    }
+
+    loginForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      loginError.textContent = '';
+
+      try {
+        await loginTeacher(document.getElementById('teacher-password').value);
+        showDashboard();
+        await loadSummary();
+        await loadWrongQuestions();
+        await loadDocuments();
+      } catch (error) {
+        loginError.textContent = error.message || '登录失败。';
+      }
+    });
+
+    logoutBtn.addEventListener('click', () => {
+      clearToken();
+      showLogin('已退出登录。');
+    });
+
+    refreshBtn.addEventListener('click', refreshDashboardData);
+    if (wrongQuestionsToggle) {
+      wrongQuestionsToggle.addEventListener('click', () => {
+        wrongQuestionsExpanded = !wrongQuestionsExpanded;
+        renderWrongQuestions();
+      });
+    }
+    documentsRefresh.addEventListener('click', loadDocuments);
+    documentReset.addEventListener('click', () => setDocumentForm());
+    documentForm.addEventListener('submit', saveDocument);
+    verifyTeacher();
+  </script>
+</body>
+</html>

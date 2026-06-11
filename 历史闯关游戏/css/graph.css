@@ -1,0 +1,704 @@
+/**
+ * 知识图谱样式 - 变法风云
+ * 与主站统一的古铜宣纸视觉
+ */
+
+.graph-view {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    font-family: "Noto Serif SC", "Microsoft YaHei", serif;
+    background:
+        radial-gradient(circle at 16% 18%, rgba(201, 169, 98, 0.18), transparent 24%),
+        radial-gradient(circle at 82% 70%, rgba(45, 90, 61, 0.12), transparent 28%),
+        linear-gradient(135deg, #f7f1e5 0%, #eadfcb 52%, #dcc9a9 100%);
+}
+
+.graph-view::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+        linear-gradient(rgba(44, 36, 22, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(44, 36, 22, 0.04) 1px, transparent 1px),
+        radial-gradient(circle at center, transparent 0, rgba(44, 36, 22, 0.06) 100%);
+    background-size: 44px 44px, 44px 44px, 100% 100%;
+}
+
+.graph-view::after {
+    content: "";
+    position: absolute;
+    inset: 64px 0 0;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgba(255, 251, 241, 0.24), rgba(255, 251, 241, 0));
+}
+
+.graph-svg {
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    z-index: 1;
+    display: block;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+    cursor: grab;
+    touch-action: none;
+}
+
+.graph-svg.is-panning,
+.graph-svg:active {
+    cursor: grabbing;
+}
+
+.graph-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 58px;
+    padding: 10px 24px;
+    background: rgba(44, 36, 22, 0.92);
+    border-bottom: 1px solid rgba(201, 169, 98, 0.62);
+    box-shadow: 0 10px 26px rgba(44, 36, 22, 0.24);
+    backdrop-filter: blur(10px);
+}
+
+.graph-header h1 {
+    margin: 0;
+    color: #ead18f;
+    font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    line-height: 1.2;
+}
+
+.graph-header .back-btn {
+    flex-shrink: 0;
+}
+
+.header-tools {
+    display: flex;
+    gap: 8px;
+}
+
+.tool-btn {
+    display: inline-grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid rgba(201, 169, 98, 0.72);
+    border-radius: 8px;
+    color: #ead18f;
+    background: rgba(201, 169, 98, 0.12);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.tool-btn:hover {
+    color: #2c2416;
+    background: #c9a962;
+    transform: translateY(-1px);
+}
+
+.graph-legend {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 100;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    max-width: min(680px, calc(100vw - 36px));
+    gap: 10px 14px;
+    padding: 11px 14px;
+    border: 1px solid rgba(139, 69, 19, 0.2);
+    border-radius: 8px;
+    color: #4b3923;
+    background: rgba(255, 250, 239, 0.9);
+    box-shadow: 0 12px 30px rgba(44, 36, 22, 0.16);
+    backdrop-filter: blur(10px);
+    font-size: 12px;
+}
+
+.legend-title {
+    color: #6a421f;
+    font-weight: 700;
+}
+
+.legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.legend-line {
+    width: 26px;
+    height: 3px;
+    border-radius: 999px;
+}
+
+.legend-line.yellow { background: #b98224; }
+.legend-line.green { background: #4f8258; }
+.legend-line.red { background: #b65b4a; }
+.legend-line.purple { background: #76629a; }
+.legend-line.orange { background: #c57b38; }
+.legend-line.blue { background: #416e8f; }
+
+.cluster-band {
+    fill: rgba(255, 252, 244, 0.52);
+    stroke: rgba(139, 69, 19, 0.2);
+    stroke-width: 1.5;
+    stroke-dasharray: 8 7;
+}
+
+.cluster-success {
+    fill: rgba(74, 124, 78, 0.08);
+}
+
+.cluster-partial {
+    fill: rgba(201, 169, 98, 0.12);
+}
+
+.cluster-fail {
+    fill: rgba(169, 68, 66, 0.08);
+}
+
+.node-group {
+    cursor: move;
+    filter: url(#graph-soft-shadow);
+}
+
+.node-group.is-dragging,
+.node-group:hover {
+    filter: drop-shadow(0 8px 12px rgba(44, 36, 22, 0.22));
+}
+
+.node-card {
+    stroke-width: 1.4;
+    transition: stroke 0.2s ease, stroke-width 0.2s ease, filter 0.2s ease;
+}
+
+.node-card-main {
+    stroke: rgba(255, 249, 231, 0.82);
+}
+
+.node-card-measure {
+    stroke: rgba(255, 249, 231, 0.72);
+}
+
+.node-group:hover .node-card {
+    stroke: #ead18f;
+    stroke-width: 2.3;
+}
+
+.node-success .node-card {
+    fill: #4f7c4f;
+}
+
+.node-partial .node-card {
+    fill: #a96732;
+}
+
+.node-fail .node-card {
+    fill: #9e4f42;
+}
+
+.node-measure .node-card {
+    fill: #456f5b;
+}
+
+.node-title,
+.node-text,
+.node-dynasty,
+.node-year {
+    pointer-events: none;
+    fill: #fffaf0;
+    paint-order: stroke;
+    stroke: rgba(44, 36, 22, 0.18);
+    stroke-width: 0.45px;
+}
+
+.node-title {
+    font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.node-dynasty {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #f6e8bd;
+}
+
+.node-year {
+    font-size: 10.5px;
+    font-weight: 600;
+    fill: #efe4d0;
+}
+
+.node-text {
+    font-size: 12.5px;
+    font-weight: 700;
+}
+
+.link {
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2;
+    stroke-opacity: 0.78;
+    pointer-events: stroke;
+    transition: stroke-width 0.2s ease, stroke-opacity 0.2s ease;
+}
+
+.link.is-hovered,
+.link:hover {
+    stroke-width: 3.4;
+    stroke-opacity: 1;
+}
+
+.link-inherit {
+    stroke: #b98224;
+    stroke-dasharray: 8 5;
+}
+
+.link-similar {
+    stroke: #4f8258;
+}
+
+.link-contrast {
+    stroke: #b65b4a;
+    stroke-dasharray: 10 6;
+}
+
+.link-measure {
+    stroke: #416e8f;
+    stroke-width: 1.75;
+    stroke-opacity: 0.68;
+}
+
+.link-label-group {
+    pointer-events: none;
+}
+
+.link-label-group.is-clickable {
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+.link-label-bg {
+    fill: rgba(255, 251, 241, 0.94);
+    stroke: rgba(139, 69, 19, 0.22);
+    stroke-width: 1;
+    filter: drop-shadow(0 4px 7px rgba(44, 36, 22, 0.12));
+}
+
+.link-label {
+    fill: #4a3822;
+    font-family: "Noto Serif SC", "Microsoft YaHei", serif;
+    font-size: 11px;
+    font-weight: 600;
+    dominant-baseline: middle;
+}
+
+.link-label-emphasis {
+    fill: #7b4c22;
+    font-weight: 800;
+}
+
+.graph-tooltip {
+    position: fixed;
+    z-index: 1000;
+    display: none;
+    max-width: 300px;
+    padding: 12px 14px;
+    border: 1px solid rgba(201, 169, 98, 0.72);
+    border-left: 4px solid #c9a962;
+    border-radius: 8px;
+    color: #eee3ca;
+    background: rgba(44, 36, 22, 0.94);
+    box-shadow: 0 16px 34px rgba(30, 23, 14, 0.32);
+    backdrop-filter: blur(10px);
+    pointer-events: none;
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.tooltip-title {
+    margin-bottom: 5px;
+    color: #ead18f;
+    font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.tooltip-dynasty {
+    display: inline-block;
+    margin-bottom: 8px;
+    padding-bottom: 2px;
+    border-bottom: 1px dashed rgba(201, 169, 98, 0.62);
+    color: #d9c18a;
+    font-size: 11px;
+}
+
+.tooltip-desc,
+.tooltip-result {
+    color: #e6d8bd;
+}
+
+.tooltip-result {
+    margin-top: 8px;
+    padding-top: 7px;
+    border-top: 1px solid rgba(201, 169, 98, 0.42);
+}
+
+.graph-mobile-detail {
+    display: none;
+}
+
+.modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.66);
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    width: min(440px, calc(100vw - 40px));
+    padding: 24px;
+    border: 1px solid rgba(139, 69, 19, 0.24);
+    border-radius: 10px;
+    background: linear-gradient(135deg, #fff9ed, #eadeca);
+    box-shadow: 0 20px 50px rgba(44, 36, 22, 0.32);
+    text-align: center;
+}
+
+.modal-content h2 {
+    margin-bottom: 18px;
+    color: #5c2d0e;
+    font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
+}
+
+.modal-close {
+    float: right;
+    border: 0;
+    color: #8b4513;
+    background: transparent;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.help-body {
+    text-align: left;
+}
+
+.help-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(139, 69, 19, 0.16);
+    color: #3f2f1d;
+}
+
+.help-icon {
+    min-width: 34px;
+    font-size: 19px;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .graph-view {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        height: 100dvh;
+        min-height: 100dvh;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        scroll-padding-top: 68px;
+        padding-bottom: 64px;
+    }
+
+    .graph-view.has-mobile-detail {
+        padding-bottom: 260px;
+    }
+
+    .graph-view::after {
+        inset: 50px 0 0;
+        position: fixed;
+    }
+
+    .graph-svg {
+        width: 100%;
+        height: auto;
+        min-height: calc(100dvh + 80px);
+        margin-top: 0;
+        padding-bottom: 72px;
+        cursor: default;
+        touch-action: pan-y pinch-zoom;
+    }
+
+    .graph-view.has-mobile-detail .graph-svg {
+        margin-bottom: 210px;
+    }
+
+    .graph-svg.is-panning,
+    .graph-svg:active {
+        cursor: default;
+    }
+
+    .graph-header {
+        min-height: 50px;
+        padding: 8px 12px;
+        gap: 8px;
+    }
+
+    .graph-header h1 {
+        flex: 1 1 auto;
+        max-width: none;
+        font-size: 13px;
+        text-align: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .graph-header .back-btn {
+        font-size: 12px;
+        min-width: 76px;
+        padding: 0 0.55rem;
+    }
+
+    .header-tools {
+        flex-shrink: 0;
+    }
+
+    .tool-btn {
+        width: 32px;
+        height: 32px;
+    }
+
+    .graph-legend {
+        left: 10px;
+        right: 10px;
+        bottom: 10px;
+        max-width: none;
+        min-height: 40px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+        gap: 8px 10px;
+        padding: 9px 10px;
+        border-radius: 8px;
+        font-size: 10px;
+        scrollbar-width: none;
+        touch-action: pan-x;
+    }
+
+    .graph-legend::-webkit-scrollbar {
+        display: none;
+    }
+
+    .legend-line {
+        width: 20px;
+    }
+
+    .graph-tooltip {
+        display: none !important;
+    }
+
+    .graph-mobile-detail {
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        bottom: 62px;
+        z-index: 220;
+        display: block;
+        max-height: min(38dvh, 260px);
+        overflow: hidden;
+        border: 1px solid rgba(139, 69, 19, 0.28);
+        border-left: 4px solid #c9a962;
+        border-radius: 10px;
+        color: #3b2c1b;
+        background:
+            linear-gradient(180deg, rgba(255, 252, 244, 0.98), rgba(241, 229, 205, 0.98));
+        box-shadow: 0 14px 34px rgba(44, 36, 22, 0.24);
+        backdrop-filter: blur(10px);
+    }
+
+    .mobile-detail-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 11px 12px 8px;
+        border-bottom: 1px solid rgba(139, 69, 19, 0.14);
+    }
+
+    .mobile-detail-head h3 {
+        min-width: 0;
+        margin: 0;
+        color: #6a421f;
+        font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
+        font-size: 17px;
+        line-height: 1.25;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .mobile-detail-close {
+        flex: 0 0 auto;
+        display: inline-grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border: 1px solid rgba(139, 69, 19, 0.18);
+        border-radius: 8px;
+        color: #6a421f;
+        background: rgba(255, 251, 241, 0.72);
+        font-size: 20px;
+        line-height: 1;
+        cursor: pointer;
+    }
+
+    .mobile-detail-body {
+        max-height: calc(min(38dvh, 260px) - 52px);
+        overflow-y: auto;
+        padding: 10px 12px 13px;
+        color: #4a3822;
+        font-size: 13px;
+        line-height: 1.62;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .mobile-detail-body p {
+        margin: 0;
+    }
+
+    .mobile-detail-meta {
+        margin-bottom: 7px;
+        color: #8b5d2a;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .mobile-detail-result {
+        margin-top: 9px;
+        padding-top: 8px;
+        border-top: 1px dashed rgba(139, 69, 19, 0.22);
+        color: #5b3b20;
+    }
+
+    .mobile-detail-result strong {
+        color: #7b4c22;
+    }
+
+    .cluster-band {
+        stroke-width: 1.2;
+        stroke-dasharray: 7 6;
+    }
+
+    .node-group {
+        cursor: pointer;
+    }
+
+    .node-card-main {
+        stroke-width: 1.5;
+    }
+
+    .node-card-measure {
+        stroke-width: 1.2;
+    }
+
+    .node-title {
+        font-size: 15px;
+    }
+
+    .node-dynasty,
+    .node-text {
+        font-size: 11px;
+    }
+
+    .node-year {
+        font-size: 10px;
+    }
+
+    .link-label {
+        font-size: 9.5px;
+    }
+
+    .link-label-bg {
+        fill: rgba(255, 251, 241, 0.96);
+        stroke-width: 0.8;
+    }
+
+    .link {
+        stroke-width: 1.8;
+    }
+
+    .link-measure {
+        stroke-width: 1.5;
+        stroke-opacity: 0.58;
+    }
+}
+
+@media (max-width: 480px) {
+    .graph-header {
+        gap: 6px;
+        padding: 7px 8px;
+    }
+
+    .graph-header h1 {
+        font-size: 12px;
+    }
+
+    .header-tools {
+        gap: 5px;
+    }
+
+    .tool-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 7px;
+    }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+    .graph-header {
+        min-height: 44px;
+        padding-top: 5px;
+        padding-bottom: 5px;
+    }
+
+    .graph-legend {
+        bottom: 6px;
+        padding: 6px 8px;
+    }
+}

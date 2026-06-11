@@ -1,0 +1,963 @@
+/* ==================== 气泡导图页面样式 ==================== */
+
+/* ==================== 页面容器 ==================== */
+.bubble-view {
+    min-height: 100vh;
+    position: relative;
+    background: var(--paper);
+}
+
+/* ==================== 顶部导航 ==================== */
+.bubble-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: var(--gradient-antique);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    z-index: 1000;
+    box-shadow: var(--shadow-md);
+}
+
+.bubble-nav h1 {
+    font-family: 'ZCOOL XiaoWei', 'Noto Serif SC', serif;
+    font-size: 1.5rem;
+    color: var(--gold);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* ==================== 左侧边栏（桌面端） ==================== */
+.bubble-sidebar {
+    position: fixed;
+    top: 60px;
+    left: 0;
+    width: 60px;
+    height: calc(100vh - 60px - 60px);
+    background: rgba(245, 240, 230, 0.98);
+    box-shadow: 2px 0 10px rgba(44, 36, 22, 0.1);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    transition: width 0.3s ease;
+}
+
+.bubble-sidebar.expanded {
+    width: 180px;
+}
+
+.sidebar-toggle {
+    width: 60px;
+    height: 50px;
+    background: var(--gradient-antique);
+    border: none;
+    color: var(--gold);
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+
+.sidebar-toggle:hover {
+    background: var(--primary-dark);
+}
+
+.bubble-sidebar.expanded .sidebar-toggle {
+    width: 180px;
+    justify-content: flex-start;
+    padding-left: 1rem;
+}
+
+.sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0.5rem 0;
+    display: none;
+}
+
+.bubble-sidebar.expanded .sidebar-content {
+    display: block;
+}
+
+.sidebar-title {
+    padding: 0.8rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--primary);
+    border-bottom: 1px solid var(--paper-dark);
+    margin-bottom: 0.5rem;
+}
+
+.sidebar-btn {
+    display: block;
+    width: 100%;
+    padding: 0.8rem 1rem;
+    background: transparent;
+    border: none;
+    border-left: 3px solid transparent;
+    text-align: left;
+    font-family: inherit;
+    font-size: 0.9rem;
+    color: var(--ink);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+
+.sidebar-btn:hover {
+    background: rgba(201, 169, 98, 0.15);
+    border-left-color: var(--gold);
+}
+
+.sidebar-btn.active {
+    background: rgba(201, 169, 98, 0.2);
+    border-left-color: var(--gold);
+    color: var(--primary);
+    font-weight: 600;
+}
+
+/* ==================== 手机端变法选择弹窗 ==================== */
+.bubble-select-modal {
+    display: none;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    background: rgba(245, 240, 230, 0.98);
+    padding: 0.8rem;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(44, 36, 22, 0.15);
+}
+
+.bubble-select-modal.show {
+    display: block;
+}
+
+.bubble-select-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--primary);
+    margin-bottom: 0.6rem;
+    padding-left: 0.3rem;
+}
+
+.bubble-select-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+}
+
+.mobile-select-btn {
+    padding: 0.6rem 0.4rem;
+    background: var(--paper);
+    border: 2px solid var(--paper-dark);
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 0.75rem;
+    color: var(--ink);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mobile-select-btn:active {
+    background: var(--gold-light);
+}
+
+.mobile-select-btn.active {
+    background: var(--gold-light);
+    border-color: var(--gold);
+    color: var(--primary-dark);
+    font-weight: 600;
+}
+
+/* ==================== 手机端气泡展开遮罩 ==================== */
+.bubble-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1999;
+}
+
+.bubble-backdrop.show {
+    display: block;
+}
+
+/* ==================== 气泡画布 ==================== */
+.bubble-canvas {
+    position: fixed;
+    top: 60px;
+    left: 60px;
+    right: 0;
+    bottom: 60px;
+    overflow: hidden;
+    z-index: 5;
+    transition: left 0.3s ease;
+}
+
+.bubble-lines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.outer-bubbles {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    overflow: visible;
+}
+
+/* ==================== 中心气泡 ==================== */
+.center-bubble {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 160px;
+    height: 160px;
+    background: var(--gradient-gold);
+    border-radius: 50%;
+    box-shadow: 
+        0 0 0 6px rgba(201, 169, 98, 0.3),
+        0 0 0 12px rgba(201, 169, 98, 0.1),
+        var(--shadow-lg);
+    z-index: 15;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    animation: centerPulse 3s ease-in-out infinite;
+}
+
+@keyframes centerPulse {
+    0%, 100% {
+        box-shadow: 
+            0 0 0 6px rgba(201, 169, 98, 0.3),
+            0 0 0 12px rgba(201, 169, 98, 0.1),
+            var(--shadow-lg);
+    }
+    50% {
+        box-shadow: 
+            0 0 0 10px rgba(201, 169, 98, 0.2),
+            0 0 0 20px rgba(201, 169, 98, 0.05),
+            var(--shadow-lg);
+    }
+}
+
+.center-bubble .bubble-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+.center-bubble h2 {
+    font-size: 1.2rem;
+    color: var(--ink);
+    margin: 0;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+.center-bubble #bubble-era {
+    font-size: 0.75rem;
+    color: var(--primary-dark);
+}
+
+/* ==================== 外围气泡 ==================== */
+.outer-bubble {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    min-width: 160px;
+    max-width: 280px;
+    background: var(--paper);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    cursor: pointer;
+    z-index: 20;
+    border: 3px solid;
+    animation: bubbleAppear 0.5s ease forwards;
+}
+
+@keyframes bubbleAppear {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.5);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+.outer-bubble:hover {
+    transform: translate(-50%, -50%) scale(1.05);
+    box-shadow: var(--shadow-lg);
+    z-index: 50;
+}
+
+.outer-bubble.expanded {
+    z-index: 2000;
+}
+
+.outer-bubble .bubble-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1rem;
+    border-radius: var(--radius-md);
+    position: relative;
+}
+
+.outer-bubble .bubble-icon {
+    font-size: 1.2rem;
+}
+
+.outer-bubble .bubble-title {
+    flex: 1;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.outer-bubble .bubble-toggle {
+    font-size: 0.8rem;
+    color: var(--ink);
+    opacity: 0.6;
+    transition: transform 0.3s;
+}
+
+.outer-bubble.expanded .bubble-toggle {
+    transform: rotate(180deg);
+}
+
+.bubble-close-btn {
+    display: none;
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    background: rgba(0, 0, 0, 0.1);
+    border: none;
+    border-radius: 50%;
+    font-size: 1rem;
+    color: var(--ink);
+    cursor: pointer;
+    line-height: 1;
+}
+
+.bubble-close-btn:active {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 768px) {
+    .bubble-close-btn {
+        display: block;
+    }
+    
+    .outer-bubble .bubble-toggle {
+        display: none;
+    }
+}
+
+.outer-bubble .bubble-body {
+    display: none;
+    padding: 0 1rem;
+}
+
+.outer-bubble .bubble-body.show {
+    display: block;
+    padding: 0.8rem 1rem;
+    overflow-y: auto;
+    max-height: 200px;
+}
+
+.outer-bubble .bubble-items {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.outer-bubble .bubble-items li {
+    position: relative;
+    padding-left: 1.2rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--ink);
+    word-break: break-word;
+}
+
+.outer-bubble .bubble-items li:last-child {
+    margin-bottom: 0;
+}
+
+.outer-bubble .bubble-items li::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: var(--gold);
+    font-weight: bold;
+}
+
+/* ==================== 控制面板 ==================== */
+.bubble-controls {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: var(--paper);
+    border-top: 2px solid var(--paper-dark);
+    padding: 0 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    box-shadow: 0 -4px 12px rgba(44, 36, 22, 0.1);
+}
+
+.control-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.control-btn-secondary {
+    padding: 0.5rem 1rem;
+    background: var(--secondary);
+    border: none;
+    border-radius: 20px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    color: white;
+    cursor: pointer;
+}
+
+.control-btn-secondary:hover {
+    background: var(--secondary-light);
+}
+
+/* ==================== 帮助弹窗 ==================== */
+.help-content {
+    padding: 1.5rem;
+    max-width: 400px;
+}
+
+.help-content h2 {
+    font-size: 1.3rem;
+    color: var(--primary);
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.help-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.help-item {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.6rem 0.8rem;
+    background: var(--paper-dark);
+    border-radius: var(--radius-md);
+}
+
+.help-icon {
+    font-size: 1.1rem;
+}
+
+/* ==================== 提示浮层 ==================== */
+#bubble-hint-toast {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--ink);
+    color: var(--gold);
+    padding: 0.6rem 1.2rem;
+    border-radius: 30px;
+    font-size: 0.9rem;
+    box-shadow: var(--shadow-lg);
+    opacity: 0;
+    transition: all var(--transition-normal);
+    z-index: 3000;
+}
+
+#bubble-hint-toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+
+/* ==================== 响应式设计 ==================== */
+
+@media (max-width: 1024px) {
+    .center-bubble {
+        width: 130px;
+        height: 130px;
+    }
+    
+    .center-bubble h2 {
+        font-size: 1.1rem;
+    }
+    
+    .outer-bubble {
+        min-width: 140px;
+        max-width: 240px;
+    }
+    
+    .bubble-sidebar {
+        height: calc(100vh - 60px - 80px);
+    }
+}
+
+@media (max-width: 768px) {
+    .bubble-nav h1 {
+        font-size: 1.1rem;
+    }
+    
+    .bubble-nav {
+        height: 50px;
+        padding: 0 0.8rem;
+    }
+    
+    /* 手机端隐藏桌面侧边栏 */
+    .bubble-sidebar {
+        display: none;
+    }
+    
+    /* 手机端显示变法选择栏 */
+    .bubble-select-modal {
+        display: block;
+    }
+    
+    /* 气泡画布全屏显示 */
+    .bubble-canvas {
+        top: 110px;
+        bottom: 60px;
+        left: 0 !important;
+    }
+    
+    /* 手机端气泡展开为弹窗 */
+    .outer-bubble.expanded {
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        width: calc(100% - 40px) !important;
+        max-width: 400px !important;
+        max-height: 60vh !important;
+        z-index: 2000 !important;
+        animation: none !important;
+    }
+    
+    .outer-bubble.expanded .bubble-body.show {
+        max-height: 45vh !important;
+    }
+    
+    .center-bubble {
+        width: 115px;
+        height: 115px;
+    }
+
+    .center-bubble h2 {
+        font-size: 0.9rem;
+    }
+
+    .center-bubble #bubble-era {
+        font-size: 0.65rem;
+    }
+    
+    .outer-bubble {
+        min-width: 110px;
+        max-width: 160px;
+    }
+    
+    .outer-bubble .bubble-header {
+        padding: 0.5rem 0.7rem;
+    }
+    
+    .outer-bubble .bubble-title {
+        font-size: 0.8rem;
+    }
+    
+    .outer-bubble .bubble-items li {
+        font-size: 0.75rem;
+        padding-left: 1rem;
+        line-height: 1.4;
+    }
+    
+    .bubble-controls {
+        height: 60px;
+        padding: 0.4rem;
+    }
+    
+    .control-btn-secondary {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.75rem;
+    }
+    
+    #bubble-hint-toast {
+        bottom: 70px;
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .bubble-nav h1 {
+        font-size: 0.95rem;
+    }
+    
+    .tool-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 0.85rem;
+    }
+    
+    .bubble-sidebar {
+        display: none;
+    }
+    
+    .bubble-canvas {
+        top: 110px !important;
+    }
+    
+    .center-bubble {
+        width: 90px;
+        height: 90px;
+    }
+
+    .center-bubble h2 {
+        font-size: 0.75rem;
+    }
+
+    .center-bubble #bubble-era {
+        font-size: 0.55rem;
+    }
+    
+    .outer-bubble {
+        min-width: 90px;
+        max-width: 130px;
+    }
+    
+    .outer-bubble .bubble-icon {
+        font-size: 0.9rem;
+    }
+    
+    .outer-bubble .bubble-title {
+        font-size: 0.7rem;
+    }
+    
+    .outer-bubble .bubble-body.show {
+        max-height: 200px;
+    }
+    
+    .outer-bubble .bubble-items li {
+        font-size: 0.65rem;
+        line-height: 1.3;
+    }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+    .bubble-sidebar {
+        top: 50px;
+        height: calc(100vh - 50px - 50px);
+    }
+    
+    .center-bubble {
+        width: 100px;
+        height: 100px;
+    }
+    
+    .center-bubble h2 {
+        font-size: 0.8rem;
+    }
+    
+    .outer-bubble {
+        min-width: 100px;
+        max-width: 150px;
+    }
+    
+    .bubble-controls {
+        height: 50px;
+    }
+    
+    #bubble-hint-toast {
+        bottom: 60px;
+    }
+}
+
+/* ==================== 移动端响应式增强 ==================== */
+@media (max-width: 768px) {
+    .bubble-nav {
+        gap: 0.5rem;
+        height: 50px;
+        padding: 0 0.8rem;
+    }
+
+    .bubble-nav h1 {
+        min-width: 0;
+        text-align: center;
+    }
+
+    .bubble-select-modal {
+        top: 50px;
+        padding: 0.55rem 0.65rem;
+    }
+
+    .bubble-select-title {
+        margin-bottom: 0.45rem;
+    }
+
+    .bubble-select-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.4rem;
+    }
+
+    .bubble-canvas {
+        top: 104px;
+    }
+
+    .outer-bubble.expanded {
+        max-height: min(66vh, 520px) !important;
+    }
+
+    .outer-bubble.expanded .bubble-body.show {
+        max-height: 46vh !important;
+    }
+
+    .bubble-controls {
+        min-height: 60px;
+        height: auto;
+        padding: 0.35rem 0.45rem;
+    }
+
+    .control-group {
+        width: 100%;
+        gap: 0.35rem;
+    }
+
+    .control-btn-secondary {
+        flex: 1 1 94px;
+        padding: 0.4rem 0.8rem;
+        font-size: 0.75rem;
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 480px) {
+    .bubble-select-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .bubble-canvas {
+        top: 104px !important;
+    }
+
+    .outer-bubble.expanded .bubble-body.show {
+        max-height: 48vh !important;
+    }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+    .bubble-nav {
+        height: 44px;
+        padding: 0 0.55rem;
+    }
+
+    .bubble-select-modal {
+        top: 44px;
+        padding: 0.35rem 0.55rem;
+    }
+
+    .bubble-select-title {
+        display: none;
+    }
+
+    .bubble-select-grid {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+
+    .mobile-select-btn {
+        padding: 0.35rem 0.25rem;
+        font-size: 0.68rem;
+    }
+
+    .bubble-canvas {
+        top: 82px !important;
+        bottom: 48px;
+    }
+
+    .bubble-controls {
+        min-height: 48px;
+    }
+
+    .outer-bubble.expanded {
+        max-height: 76vh !important;
+    }
+
+    .outer-bubble.expanded .bubble-body.show {
+        max-height: 54vh !important;
+    }
+}
+
+/* Mobile detail drawer: replaces the dark centered bubble overlay */
+.bubble-mobile-detail {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .bubble-backdrop,
+    .bubble-backdrop.show {
+        display: none !important;
+        background: transparent !important;
+    }
+
+    .outer-bubble.is-selected {
+        box-shadow: 0 0 0 3px rgba(201, 169, 98, 0.42), var(--shadow-lg);
+        z-index: 80;
+    }
+
+    .outer-bubble.expanded {
+        position: absolute !important;
+        width: auto !important;
+        max-width: 160px !important;
+        max-height: none !important;
+        z-index: 80 !important;
+        animation: bubbleAppear 0.5s ease forwards !important;
+    }
+
+    .outer-bubble.expanded .bubble-body.show {
+        display: none !important;
+    }
+
+    .bubble-mobile-detail {
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        bottom: 72px;
+        z-index: 1900;
+        display: block;
+        max-height: min(38dvh, 250px);
+        overflow: hidden;
+        border: 1px solid rgba(139, 69, 19, 0.24);
+        border-left: 4px solid var(--gold);
+        border-radius: 10px;
+        color: var(--ink);
+        background: linear-gradient(180deg, rgba(255, 252, 244, 0.98), rgba(239, 228, 207, 0.98));
+        box-shadow: 0 14px 34px rgba(44, 36, 22, 0.24);
+        backdrop-filter: blur(10px);
+    }
+
+    .bubble-mobile-detail-head {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 10px 11px 8px;
+        border-bottom: 1px solid rgba(139, 69, 19, 0.14);
+    }
+
+    .bubble-mobile-detail-icon {
+        flex: 0 0 auto;
+        display: inline-grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        background: rgba(201, 169, 98, 0.18);
+        font-size: 17px;
+    }
+
+    .bubble-mobile-detail-head h3 {
+        flex: 1 1 auto;
+        min-width: 0;
+        margin: 0;
+        color: var(--primary-dark);
+        font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
+        font-size: 17px;
+        line-height: 1.25;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .bubble-mobile-detail-close {
+        flex: 0 0 auto;
+        display: inline-grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border: 1px solid rgba(139, 69, 19, 0.18);
+        border-radius: 8px;
+        color: var(--primary-dark);
+        background: rgba(255, 251, 241, 0.76);
+        font-size: 20px;
+        line-height: 1;
+        cursor: pointer;
+    }
+
+    .bubble-mobile-detail-body {
+        max-height: calc(min(38dvh, 250px) - 50px);
+        overflow-y: auto;
+        padding: 10px 12px 13px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .bubble-mobile-detail-body ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .bubble-mobile-detail-body li {
+        position: relative;
+        margin-bottom: 7px;
+        padding-left: 16px;
+        color: #493620;
+        font-size: 13px;
+        line-height: 1.55;
+        word-break: break-word;
+    }
+
+    .bubble-mobile-detail-body li:last-child {
+        margin-bottom: 0;
+    }
+
+    .bubble-mobile-detail-body li::before {
+        content: "";
+        position: absolute;
+        left: 2px;
+        top: 0.72em;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--gold);
+    }
+}
